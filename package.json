@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@google-cloud/cloud-sql-connector": "^1.7.0",
+    "mysql2": "^3.14.0",
+    "pg": "^8.14.1"
+  }
+}
