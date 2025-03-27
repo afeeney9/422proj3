@@ -8,7 +8,7 @@ export const LoginPage = ({ setViewer, setUser }) => {
 
     async function handleSubmit(e){
         e.preventDefault(); // Prevents page reload
-
+        console.log("HANLDING SUBMISSION")
         if(username && password){
             setErrorMessage(<div></div>)
             try {
@@ -39,7 +39,7 @@ export const LoginPage = ({ setViewer, setUser }) => {
     return (
         <div style={styles.container}>
             <h2>Login</h2>
-            <form onSubmit={async () => await handleSubmit()} style={styles.form}>
+            <form onSubmit={handleSubmit} style={styles.form}>
                 <input
                     type="text"
                     name="username"
