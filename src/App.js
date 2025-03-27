@@ -1,25 +1,18 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useState } from "react";
+import { LoginPage } from "./LoginPage";
+// import { HomePage } from "./HomePage";
+// import { UploadPage } from "./UploadPage";
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
-}
+export default function App() {
+    const [user, setUser] = useState(null);
+    const [viewer, setViewer] = useState(0);
 
-export default App;
+
+    return (
+        <div>
+            {viewer === 0 && <LoginPage setUser={setUser} setViewer={setViewer} />}
+            {/*{viewer === 1 && <HomePage username={user} setViewer={setViewer} />}*/}
+            {/*{viewer === 2 && <UploadPage username={user} setViewer={setViewer} />}*/}
+        </div>
+    );
+};
