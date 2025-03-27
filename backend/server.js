@@ -1,46 +1,61 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { Pool } = require('@google-cloud/sql');
-const {AWS } = require('aws-sdk');
-const {fs} = require('fs');
+const mysql = require('mysql2');
+const {AWS} = require('aws-sdk');
 
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-const pool = new Pool({
-    connectionName: process.env.SQLSERVER_CONNECTION_NAME,
-    database: process.env.DB_NAME,
+// Create a connection to the database
+const connection = mysql.createConnection({
+    host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASS,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT,
+});
+
+//Create a connection to the AWS bucket
+const s3 = new AWS.S3({
+    apiVersion: '2006-03-01',
+    region: process.env.REGION,
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY,
+        secretAccessKey: process.env.AWS_SECRET_KEY
+    }
 });
 
 // API Route to Login
 app.post('/api/login', async (req, res) => {
-    const { username, password } = req.body;
+    const {username, password} = req.body;
 
     if (!username || !password) {
-        return res.status(400).json({ error: 'Username and password are required' });
+        return res.status(400).json({error: 'Username and password are required'});
     }
 
     try {
-        const query = 'SELECT * FROM users WHERE username = $1 AND password = $2';
-        const { rows } = await pool.query(query, [username, password]);
-
-        if (rows.length > 0) {
-            return res.status(200).json({ message: 'Login successful', user: rows[0] });
-        } else {
-            return res.status(401).json({ error: 'Invalid username or password' });
-        }
+        const query = 'SELECT * FROM users WHERE username = ? AND password = ?';
+        connection.execute(query, [username, password], (err, results) => {
+            if (err) {
+                console.error('Error executing query:', err);
+                return res.status(500).json({error: 'Internal server error'});
+            }
+            if (results.length > 0) {
+                return res.status(200).json({message: 'Login successful', user: results[0]});
+            } else {
+                return res.status(401).json({error: 'Invalid username or password'});
+            }
+        })
     } catch (error) {
         console.error('Error executing query:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({error: 'Internal server error'});
     }
 });
 
-app.get('/api/search', async(req, res) => {
+app.get('/api/search', async (req, res) => {
     const {username, searchTerms} = req.body;
 
     if (!username || !searchTerms) {
@@ -48,53 +63,53 @@ app.get('/api/search', async(req, res) => {
     }
 
     try {
-        const query = 'SELECT * FROM photos WHERE username = $1 AND title CONTAINS $2';
-        const {rows} = await pool.query(query, [username, searchTerms]);
+        const query = 'SELECT * FROM photos WHERE username = ? AND title CONTAINS ?';
+        connection.execute(query, [username, searchTerms], (err, results) => {
+            if (err) {
+                console.error('Error executing query:', err);
+                return res.status(500).json({error: 'Internal server error'});
+            }
+            return res.status(200).json({message: 'Query successful', photos: results});
 
-        return res.status(200).json({message: 'Query successful', photos: rows});
+        })
+    }catch(error){
+        console.error('Error executing query:', error);
+        return res.status(500).json({error: 'Internal server error'});
+    }
+});
+
+app.get('/api/photos', async (req, res) => {
+    const {username} = req.body;
+
+    if (!username) {
+        return res.status(400).json({error: 'Username is required'});
+    }
+
+    try {
+        const query = 'SELECT * FROM photos WHERE username = ?';
+        connection.execute(query, [username], (err, results) => {
+            if (err) {
+                console.error('Error executing query:', err);
+                return res.status(500).json({error: 'Internal server error'});
+            }
+            return res.status(200).json({message: 'Query successful', photos: results});
+
+        })
 
     } catch (error) {
         console.error('Error executing query:', error);
         return res.status(500).json({error: 'Internal server error'});
-
-    }
-});
-
-app.get('/api/photos', async(req, res) => {
-    const { username } = req.body;
-
-    if(!username){
-        return res.status(400).json({ error: 'Username is required' });
-    }
-
-    try {
-        const query = 'SELECT * FROM photos WHERE username = $1';
-        const { rows } = await pool.query(query, [username]);
-
-        return res.status(200).json({ message: 'Query successful', photos: rows });
-
-    } catch (error) {
-        console.error('Error executing query:', error);
-        return res.status(500).json({ error: 'Internal server error' });
     }
 });
 
 
-app.post('/api/upload', async(req, res) => {
-    const { username, title, tags, description, image} = req.body;
+app.post('/api/upload', async (req, res) => {
+    const {username, title, tags, description, image} = req.body;
 
-    if(!username || !title || !image){
-        return res.status(400).json({ error: 'Username is required' });
+    if (!username || !title || !image) {
+        return res.status(400).json({error: 'Username is required'});
     }
 
-    const s3 = new AWS.S3({
-        apiVersion: '2006-03-01',
-        region: process.env.REGION,
-        credentials: {
-            accessKeyId: process.env.AWS_ACCESS_KEY,
-            secretAccessKey: process.env.AWS_SECRET_KEY
-        }
-    });
     const params = {
         Bucket: process.env.BUCKET_NAME,
         Key: title,
@@ -110,20 +125,25 @@ app.post('/api/upload', async(req, res) => {
 
             }
         });
-    }catch(error) {
+    } catch (error) {
         return res.status(500).json({error: 'Can not post to AWS bucket'});
     }
     const imageUrl = "http://" + process.env.BUCKET_NAME + ".s3.us-east-2.amazonaws.com/" + title
 
     try {
-        const query = 'INSERT INTO photos (title, description, tags, imageUrl, username) VALUES ($1, $2, $3, $4, $5)';
-        const { rows } = await pool.query(query, [title, description, tags, imageUrl, username]);
+        const query = 'INSERT INTO photos (title, description, tags, imageUrl, username) VALUES (?, ?, ?, ?, ?)';
+        connection.execute(query, [title, description, tags, imageUrl, username], (err, results) => {
+            if (err) {
+                console.error('Error executing query:', err);
+                return res.status(500).json({error: 'Internal server error'});
+            }
+            return res.status(200).json({message: 'Posting successful', photos: results});
 
-        return res.status(200).json({ message: 'Query successful', photos: rows });
+        })
 
     } catch (error) {
-        console.error('Error executing query:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        console.error('Error executing upload:', error);
+        return res.status(500).json({error: 'Internal server error'});
     }
 });
 
