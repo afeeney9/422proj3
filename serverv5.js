@@ -69,6 +69,35 @@ app.post('/api/login', (req, res) => {
   });
 });
 
+app.post('/api/housing/houseSale', (req, res) => {
+  const {type, price, location, bedrooms, bathrooms, sqft, lotSize, yearBuilt, description } = req.body;
+
+  // Validate input
+  if (!type || !price || !location || !bedrooms || !bathrooms || !sqft || !lotSize || !yearBuilt || !description) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+    pool.getConnection((err, connection) => {
+      if (err) {
+        console.error('Error getting connection from pool:', err.stack);
+        return res.status(500).json({ error: 'Database connection failed' });
+      }
+
+      const query = 'INSERT INTO housing (type, price, location, bedrooms, bathrooms, sqft, lotSize, yearBuilt, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
+      connection.execute(query, [type, price, location, bedrooms, bathrooms, sqft, lotSize, yearBuilt, description], (err, results) => {
+        connection.release();  // Release the connection back to the pool
+
+        if (err) {
+          console.error('Error executing insert query:', err);
+          return res.status(500).json({ error: 'Failed to create housing listing' });
+        }
+
+        return res.status(201).json({ message: 'Housing listing created successfully' });
+      });
+    });
+});
+  
+
+
 
 app.post('/api/signup', (req, res) => {
   const { username, password } = req.body;
@@ -211,6 +240,30 @@ app.get('/api/photos', (req, res) => {
 // Get the main index html file
 app.get("/", (req, res) => {
  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get("/api/housing/houseSale", (req, res) => {
+
+  const type = req.query.type;
+
+  pool.getConnection((err, connection) => {
+    if (err) {
+      console.error('Error getting connection from pool:', err.stack);
+      return res.status(500).json({ error: 'Database connection failed' });
+    }
+
+    const query = 'SELECT * FROM house WHERE type = ?';
+    connection.execute(query, [type], (err, results) => {
+      connection.release();  // Release the connection back to the pool
+
+      if (err) {
+        console.error('Error fetching house for sale:', err);
+        return res.status(500).json({ error: 'Failed to fetch house' });
+      }
+
+      return res.status(200).json({ house: results });
+    });
+  });
 });
 
 

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Houses</title>
+    <style>
+       .grid-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 20px;
+        }
+
+        .listing-row {
+        margin-bottom: 40px;
+        }
+
+        .listing-row h2 {
+        margin-bottom: 16px;
+        font-size: 1.75rem;
+        color: #222;
+        }
+
+        .listing-card {
+        background: #ffffff;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s ease;
+        }
+
+        .listing-card:hover {
+        transform: scale(1.02);
+        }
+
+    </style>
+</head>
+<body>
+    <h1>Different Housing</h1>
+
+    <section class="listing-row" id="houseSaleContainer">
+        <h2>Houses for Sale</h2>
+        <div class="grid-container" id="housesForSale">
+          
+        </div>
+      </section>
+      
+      <section class="listing-row">
+        <h2>Houses for Rent</h2>
+        <div class="grid-container">
+          <div class="listing-card">Rental 1</div>
+          <div class="listing-card">Rental 2</div>
+        </div>
+      </section>
+      
+      <section class="listing-row">
+        <h2>Apartments</h2>
+        <div class="grid-container">
+          <div class="listing-card">Apartment 1</div>
+          <div class="listing-card">Apartment 2</div>
+          <div class="listing-card">Apartment 3</div>
+          <div class="listing-card">Apartment 4</div>
+        </div>
+      </section>
+      
+
+    <script>
+        let allHouseForSale = []; // Store the photos globally to filter them later
+
+        async function fetchPhotos(username) {
+            const response = await fetch(`https://proj4-456020.uc.r.appspot.com/api/housing/houseSale?type=Sale`);
+            if (!response.ok) {
+                alert('Error fetching houses for sale');
+                return;
+            }
+
+            const data = await response.json();
+            allHouseForSale = data.houses; // Store the photos in the global variable
+
+            const houseSaleContainer = document.getElementById('housesForSaleContainer');
+            houseSaleContainer.innerHTML = ''; // Clear any previous photos
+
+            if (allHouseForSale.length === 0) {
+                houseSaleContainer.innerHTML = '<p>No photos uploaded yet!</p>';
+                return;
+            }
+
+            displayHouseSale(allHouseForSale);
+        }
+
+        function displayHouseSale(housesSale) {
+            const housesForSaleContainer = document.getElementById('housesForSaleContainer');
+            houseSaleContainer.innerHTML = ''; // Clear current photos
+
+            housesSale.forEach((house) => {
+                
+            });
+        }
+    </script>
