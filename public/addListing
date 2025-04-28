@@ -22,7 +22,7 @@
       margin-top: 15px;
       font-weight: bold;
     }
-    input, textarea {
+    input, textarea, select {
       width: 100%;
       padding: 10px;
       margin-top: 5px;
@@ -40,7 +40,6 @@
     button:hover {
       background-color: #45a049;
     }
-
     .error {
       color: red;
       margin-top: 10px;
@@ -52,48 +51,108 @@
   <h2>Add a House for Sale</h2>
 
   <form id="houseForm">
-    <label for="price">Price ($)</label>
-    <input type="number" id="price" name="price" required>
-
-    <label for="location">Location</label>
-    <input type="text" id="location" name="location" required>
-
+    <label for="price">Price (required)</label>
+    <input type="text" id="price" placeholder="Price" required />
+    
+    <label for="location">Location (required)</label>
+    <input type="text" id="location" placeholder="Location" required />
+    
     <label for="bedrooms">Bedrooms</label>
-    <input type="number" id="bedrooms" name="bedrooms" required>
-
+    <input type="number" id="bedrooms" placeholder="Bedrooms" />
+    
     <label for="bathrooms">Bathrooms</label>
-    <input type="number" id="bathrooms" name="bathrooms" required>
-
-    <label for="sqft">Square Footage</label>
-    <input type="number" id="sqft" name="sqft" required>
-
-    <label for="lotSize">Lot Size (sq ft)</label>
-    <input type="number" id="lotSize" name="lotSize" required>
-
-    <label for="yearBuilt">Year Built</label>
-    <input type="number" id="yearBuilt" name="yearBuilt" required>
-
-    <label for="description">Description</label>
-    <textarea id="description" name="description" rows="5" required></textarea>
-
-    <button type="submit">Submit Listing</button>
-    <div class="error" id="errorMessage"></div>
+    <input type="number" id="bathrooms" placeholder="Bathrooms" />
+    
+    <label for="square_footage">Square Footage</label>
+    <input type="number" id="square_footage" placeholder="Square Footage" />
+    
+    <label for="lot_size">Lot Size</label>
+    <input type="number" id="lot_size" placeholder="Lot Size" />
+    
+    <label for="year_built">Year Built</label>
+    <input type="number" id="year_built" placeholder="Year Built" />
+    
+    <label for="condition">Condition</label>
+    <select id="condition">
+      <option value="">Select Condition</option>
+      <option value="New">New</option>
+      <option value="Like New">Like New</option>
+      <option value="Excellent">Excellent</option>
+      <option value="Good">Good</option>
+      <option value="Fair">Fair</option>
+      <option value="Needs Work">Needs Work</option>
+    </select>
+    
+    <label for="description">Description (required)</label>
+    <textarea id="description" placeholder="Description" required></textarea>
+    
+    <label for="image_url">Image URL</label>
+    <input type="text" id="image_url" placeholder="Image URL" />
+    
+    <!-- Hidden fields for rental-specific properties -->
+    <input type="hidden" id="year_manufactured" value="0" />
+    <input type="hidden" id="lease_length" value="" />
+    <input type="hidden" id="availability" value="Available" />
+    <input type="hidden" id="furnished" value="false" />
+    <input type="hidden" id="pet_friendly" value="false" />
+    <input type="hidden" id="lot_rent" value="0" />
+    
+    <button type="submit">Submit</button>
+    <div id="errorMessage" class="error"></div>
   </form>
 
   <script>
     document.getElementById('houseForm').addEventListener('submit', async function(event) {
       event.preventDefault(); // Prevent default form submission
 
-      const type = 'forSale';
+      const category = 'House for Sale';  // This could be dynamic if needed
       const price = document.getElementById('price').value;
       const location = document.getElementById('location').value;
-      const bedrooms = document.getElementById('bedrooms').value;
-      const bathrooms = document.getElementById('bathrooms').value;
-      const sqft = document.getElementById('sqft').value;
-      const lotSize = document.getElementById('lotSize').value;
-      const yearBuilt = document.getElementById('yearBuilt').value;
+      const bedrooms = document.getElementById('bedrooms').value || 0;
+      const bathrooms = document.getElementById('bathrooms').value || 0;
+      const square_footage = document.getElementById('square_footage').value || 0;
+      const lot_size = document.getElementById('lot_size').value || 0;
+      const year_built = document.getElementById('year_built').value || 0;
+      const year_manufactured = document.getElementById('year_manufactured').value || 0;
+      const lease_length = document.getElementById('lease_length').value || "";
+      const availability = document.getElementById('availability').value || "Available";
+      const furnished = document.getElementById('furnished').value === "true";
+      const pet_friendly = document.getElementById('pet_friendly').value === "true";
+      const condition = document.getElementById('condition').value || "";
+      const lot_rent = document.getElementById('lot_rent').value || 0;
       const description = document.getElementById('description').value;
+      const image_url = document.getElementById('image_url').value || "";
+
       const errorMessage = document.getElementById('errorMessage');
+
+      // Basic validation for required fields
+      if (!category || !price || !location || !description) {
+        errorMessage.textContent = 'Category, price, location, and description are required fields.';
+        return;
+      }
+
+      // Create the data object - using the exact field names from the database
+      const data = {
+        category, 
+        price, 
+        location, 
+        bedrooms, 
+        bathrooms, 
+        square_footage, 
+        lot_size, 
+        year_built, 
+        year_manufactured, 
+        lease_length, 
+        availability, 
+        furnished, 
+        pet_friendly, 
+        condition, 
+        lot_rent, 
+        description, 
+        image_url
+      };
+
+      console.log("Sending data:", data);
 
       try {
         const response = await fetch('https://proj4-456020.uc.r.appspot.com/api/housing/forSale', {
@@ -101,12 +160,11 @@
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            type, price, location, bedrooms, bathrooms, sqft, lotSize, yearBuilt, description
-          }),
+          body: JSON.stringify(data),
         });
 
         const result = await response.json();
+        console.log("API response:", result);
 
         if (response.ok) {
           window.location.href = 'housing.html'; // Redirect on success
@@ -114,6 +172,7 @@
           errorMessage.textContent = result.error || 'Something went wrong.';
         }
       } catch (error) {
+        console.error("Error:", error);
         errorMessage.textContent = 'An error occurred. Please try again.';
       }
     });

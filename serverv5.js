@@ -70,30 +70,64 @@ app.post('/api/login', (req, res) => {
 });
 
 app.post('/api/housing/forSale', (req, res) => {
-  const {type, price, location, bedrooms, bathrooms, squarefeet, lotSize, yearBuilt, description} = req.body
+  const {
+    category, 
+    price, 
+    location, 
+    bedrooms, 
+    bathrooms, 
+    square_footage, 
+    lot_size, 
+    year_built, 
+    year_manufactured, 
+    lease_length, 
+    availability, 
+    furnished, 
+    pet_friendly, 
+    condition, 
+    lot_rent, 
+    description, 
+    image_url
+  } = req.body;
 
-  if(!type || !price || !location || !bedrooms || !bathrooms || !squarefeet || !lotSize || !yearBuilt || !description){
-    return res.status(400).json({error: 'need all fields'});
+  // Validate required fields
+  if (!category || !price || !location || !description) {
+    return res.status(400).json({ error: 'Category, price, location, and description are required fields.' });
   }
-  pool.getConnection((err, connection) => {
+
+  // Insert query (handling NULL values for optional fields)
+  const insertQuery = `
+    INSERT INTO housing 
+    (category, price, location, bedrooms, bathrooms, square_footage, lot_size, year_built, year_manufactured, lease_length, availability, furnished, pet_friendly, condition, lot_rent, description, image_url) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+  connection.execute(insertQuery, [
+    category, 
+    price || null, 
+    location || null, 
+    bedrooms || null, 
+    bathrooms || null, 
+    square_footage || null, 
+    lot_size || null, 
+    year_built || null, 
+    year_manufactured || null, 
+    lease_length || null, 
+    availability || null, 
+    furnished || null, 
+    pet_friendly || null, 
+    condition || null, 
+    lot_rent || null, 
+    description || null, 
+    image_url || null
+  ], (err, results) => {
     if (err) {
-      console.error('Error getting connection from pool:', err.stack);
-      return res.status(500).json({ error: 'Database connection failed' });
+      console.error("Error inserting data:", err);
+      return res.status(500).json({ error: 'Database insertion failed.' });
     }
-    const insertQuery = 'INSERT INTO housing (type, price, location, bedrooms, bathrooms, squarefeet, lotSize, yearBuilt, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
-    connection.execute(insertQuery, [id, type, price, location, bedrooms, bathrooms, squarefeet, lotSize, yearBuilt, description], (err, results) => {
-      connection.release(); // Release the connection back to the pool
 
-      if (err) {
-        console.error('Error executing insert query:', err);
-        return res.status(500).json({ error: 'Failed to create user' });
-      }
-
-      return res.status(201).json({ message: 'For Sale Listing created successfully' });
-    });
-
+    console.log("Insert successful:", results);
+    res.status(200).json({ message: 'Listing successfully added!', results });
   });
-
 });
 
 
